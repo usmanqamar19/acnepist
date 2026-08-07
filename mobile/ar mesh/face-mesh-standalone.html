@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Mesh Detection - MediaPipe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            background: #000;
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        #output {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        #startBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #stopBtn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        #stopBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Face Mesh Detection</h1>
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="output"></canvas>
+        </div>
+        <div class="controls">
+            <button id="startBtn">Start Detection</button>
+            <button id="stopBtn" disabled>Stop Detection</button>
+        </div>
+        <div class="info">
+            <p>Click "Start Detection" to begin face tracking</p>
+        </div>
+    </div>
+    
+    <!-- MediaPipe Face Mesh -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    
+    <script>
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('output');
+        const canvasCtx = canvasElement.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        let camera = null;
+        let faceMesh = null;
+        let faceDetectionStartTime = null;
+        let lastLandmarks = null;
+        let sortedLandmarkIndices = null;
+
+        // Animation settings
+        const DOT_APPEAR_DURATION = 800;
+        const LINE_APPEAR_DURATION = 1000;
+        const WHITE_OPACITY = 'rgba(255, 255, 255, 0.7)';
+
+        // Wait for MediaPipe to load
+        function waitForMediaPipe() {
+            if (typeof FaceMesh !== 'undefined' && typeof Camera !== 'undefined') {
+                initializeFaceMesh();
+            } else {
+                setTimeout(waitForMediaPipe, 100);
+            }
+        }
+
+        // Initialize MediaPipe Face Mesh
+        function initializeFaceMesh() {
+            faceMesh = new FaceMesh({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+                }
+            });
+
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            faceMesh.onResults(onResults);
+        }
+
+        // Sort landmarks by distance from center
+        function sortLandmarksByDistanceFromCenter(landmarks) {
+            let centerX = 0;
+            let centerY = 0;
+            for (const landmark of landmarks) {
+                centerX += landmark.x;
+                centerY += landmark.y;
+            }
+            centerX /= landmarks.length;
+            centerY /= landmarks.length;
+
+            const indicesWithDistances = landmarks.map((landmark, index) => {
+                const dx = landmark.x - centerX;
+                const dy = landmark.y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return { index, distance };
+            });
+
+            indicesWithDistances.sort((a, b) => b.distance - a.distance);
+            return indicesWithDistances.map(item => item.index);
+        }
+
+        // Check if landmarks changed significantly
+        function hasSignificantChange(landmarks1, landmarks2) {
+            if (!landmarks1 || !landmarks2 || landmarks1.length !== landmarks2.length) {
+                return true;
+            }
+            let totalDiff = 0;
+            for (let i = 0; i < Math.min(landmarks1.length, landmarks2.length); i++) {
+                const dx = landmarks1[i].x - landmarks2[i].x;
+                const dy = landmarks1[i].y - landmarks2[i].y;
+                totalDiff += Math.sqrt(dx * dx + dy * dy);
+            }
+            return (totalDiff / landmarks1.length) > 0.1;
+        }
+
+        // Handle face mesh results
+        function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const landmarks = results.multiFaceLandmarks[0];
+
+                if (lastLandmarks === null || hasSignificantChange(landmarks, lastLandmarks)) {
+                    faceDetectionStartTime = Date.now();
+                    sortedLandmarkIndices = sortLandmarksByDistanceFromCenter(landmarks);
+                }
+                lastLandmarks = landmarks;
+
+                const currentTime = Date.now();
+                const elapsed = currentTime - faceDetectionStartTime;
+
+                const dotProgress = Math.min(elapsed / DOT_APPEAR_DURATION, 1);
+                const lineProgress = dotProgress >= 1 ? Math.min((elapsed - DOT_APPEAR_DURATION) / LINE_APPEAR_DURATION, 1) : 0;
+
+                const numDots = landmarks.length;
+                const dotsToShow = Math.floor(numDots * dotProgress);
+                const visibleLandmarks = new Set();
+
+                for (let i = 0; i < dotsToShow; i++) {
+                    const landmarkIndex = sortedLandmarkIndices[i];
+                    visibleLandmarks.add(landmarkIndex);
+                    const landmark = landmarks[landmarkIndex];
+                    const x = landmark.x * canvasElement.width;
+                    const y = landmark.y * canvasElement.height;
+
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(x, y, 2, 0, 2 * Math.PI);
+                    canvasCtx.fillStyle = WHITE_OPACITY;
+                    canvasCtx.fill();
+                }
+
+                if (lineProgress > 0 && dotProgress >= 1) {
+                    // Get MediaPipe connection constants (available globally when using script tags)
+                    const allConnections = [
+                        ...(typeof FACEMESH_TESSELATION !== 'undefined' ? FACEMESH_TESSELATION : []),
+                        ...(typeof FACEMESH_FACE_OVAL !== 'undefined' ? FACEMESH_FACE_OVAL : []),
+                        ...(typeof FACEMESH_RIGHT_EYE !== 'undefined' ? FACEMESH_RIGHT_EYE : []),
+                        ...(typeof FACEMESH_LEFT_EYE !== 'undefined' ? FACEMESH_LEFT_EYE : []),
+                        ...(typeof FACEMESH_LIPS !== 'undefined' ? FACEMESH_LIPS : [])
+                    ];
+
+                    const totalConnections = allConnections.length;
+                    if (totalConnections > 0) {
+                        const connectionsToShow = Math.floor(totalConnections * lineProgress);
+
+                        canvasCtx.strokeStyle = WHITE_OPACITY;
+                        canvasCtx.lineWidth = 1.5;
+                        canvasCtx.lineCap = 'round';
+                        canvasCtx.lineJoin = 'round';
+
+                        for (let i = 0; i < connectionsToShow && i < allConnections.length; i++) {
+                            const connection = allConnections[i];
+                            if (connection && connection.length >= 2) {
+                                const startIdx = connection[0];
+                                const endIdx = connection[1];
+
+                                if (visibleLandmarks.has(startIdx) && visibleLandmarks.has(endIdx)) {
+                                    const start = landmarks[startIdx];
+                                    const end = landmarks[endIdx];
+
+                                    canvasCtx.beginPath();
+                                    canvasCtx.moveTo(start.x * canvasElement.width, start.y * canvasElement.height);
+                                    canvasCtx.lineTo(end.x * canvasElement.width, end.y * canvasElement.height);
+                                    canvasCtx.stroke();
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                faceDetectionStartTime = null;
+                lastLandmarks = null;
+                sortedLandmarkIndices = null;
+            }
+
+            canvasCtx.restore();
+        }
+
+        // Start face detection
+        async function startDetection() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    }
+                });
+
+                videoElement.srcObject = stream;
+
+                const onLoadedMetadata = () => {
+                    canvasElement.width = videoElement.videoWidth;
+                    canvasElement.height = videoElement.videoHeight;
+                    videoElement.removeEventListener('loadedmetadata', onLoadedMetadata);
+                };
+                videoElement.addEventListener('loadedmetadata', onLoadedMetadata);
+
+                camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        await faceMesh.send({ image: videoElement });
+                    },
+                    width: 640,
+                    height: 480
+                });
+
+                camera.start();
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Error accessing camera. Please make sure you grant camera permissions.');
+            }
+        }
+
+        // Stop face detection
+        function stopDetection() {
+            if (camera) {
+                camera.stop();
+                camera = null;
+            }
+
+            if (videoElement.srcObject) {
+                const tracks = videoElement.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            faceDetectionStartTime = null;
+            lastLandmarks = null;
+            sortedLandmarkIndices = null;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startDetection);
+        stopBtn.addEventListener('click', stopDetection);
+
+        // Initialize on page load
+        window.addEventListener('load', waitForMediaPipe);
+    </script>
+</body>
+</html>
+

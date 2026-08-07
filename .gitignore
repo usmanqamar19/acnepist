@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+
+# Next.js
+.next/
+out/
+
+# Build output
+dist/
+build/
+web-build/
+*.tsbuildinfo
+
+# Expo
+.expo/
+.expo-shared/
+.metro-health-check*
+
+# Native build directories
+ios/Pods/
+ios/build/
+ios/DerivedData/
+android/build/
+android/app/build/
+android/.gradle/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Keys, certificates and signing material
+*.pem
+*.p8
+*.p12
+*.key
+*.keystore
+*.jks
+*.mobileprovision
+*.cer
+*.certSigningRequest
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.pnpm-debug.*
+
+# Editor and tooling directories
+.vscode/
+.cursor/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Deployment
+.vercel
+.netlify

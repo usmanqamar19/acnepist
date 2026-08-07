@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sage-green: #9CAF88;
+  --sage-green-light: #B8D4A6;
+  --sage-green-dark: #7A9370;
+  --soft-blue: #A8C5D9;
+  --soft-blue-light: #C4D9E8;
+  --soft-blue-dark: #7FA3C0;
+  --cream: #F5F1E8;
+  --cream-light: #FAF8F3;
+  --cream-dark: #E8E0D3;
+  --background: #FAF8F3;
+  --foreground: #4A4A4A;
+  --text-soft: #6B6B6B;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  line-height: 1.6;
+}
+
+* {
+  border-radius: 0.75rem;
+}

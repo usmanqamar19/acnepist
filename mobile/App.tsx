@@ -74,7 +74,7 @@ export default function App() {
             {/* Greeting */}
             <View style={styles.greeting}>
               <Text style={styles.sparkle}>✨</Text>
-              <Text style={styles.greetingTitle}>Hi, How do you{'\n'}Feeling today?</Text>
+              <Text style={styles.greetingTitle}>Hi, how are you{'\n'}feeling today?</Text>
             </View>
 
             {/* Mood Selection */}

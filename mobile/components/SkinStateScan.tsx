@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { StatusBar } from 'expo-status-bar';
 import DynamicFaceMeshOverlay from './DynamicFaceMeshOverlay';
+import { sanitizeTherapeuticLanguage } from '../utils/safeLanguage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -33,7 +34,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
     clinicalName: 'Whiteheads',
     description: 'Small bumps where the pore is closed, trapping oil and dead skin cells inside.',
     whatItLooksLike: 'Flesh-colored or white small bumps on the skin surface',
-    careTip: 'Gentle exfoliation with salicylic acid can help. Avoid squeezing!',
+    careTip: 'Gentle exfoliation a couple of times a week can help. Avoid squeezing!',
     severity: 'mild',
     color: '#10B981',
     emoji: '⚪',
@@ -43,7 +44,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
     clinicalName: 'Whiteheads',
     description: 'Small bumps where the pore is closed, trapping oil and dead skin cells inside.',
     whatItLooksLike: 'Flesh-colored or white small bumps on the skin surface',
-    careTip: 'Gentle exfoliation with salicylic acid can help. Avoid squeezing!',
+    careTip: 'Gentle exfoliation a couple of times a week can help. Avoid squeezing!',
     severity: 'mild',
     color: '#10B981',
     emoji: '⚪',
@@ -71,9 +72,9 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'pustule': {
     therapeuticName: 'Surface Spots with Fluid',
     clinicalName: 'Pustules',
-    description: 'Inflamed bumps filled with pus, typically with a visible white or yellow center.',
+    description: 'Sensitive bumps filled with fluid, typically with a visible white or yellow center.',
     whatItLooksLike: 'Red bumps with a white or yellow tip containing fluid',
-    careTip: 'Spot treatment with benzoyl peroxide. Never pop - it can cause scarring!',
+    careTip: 'A gentle spot product can help. Never pop them, as that can leave marks.',
     severity: 'moderate',
     color: '#F59E0B',
     emoji: '🟡',
@@ -81,9 +82,9 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'pustules': {
     therapeuticName: 'Surface Spots with Fluid',
     clinicalName: 'Pustules',
-    description: 'Inflamed bumps filled with pus, typically with a visible white or yellow center.',
+    description: 'Sensitive bumps filled with fluid, typically with a visible white or yellow center.',
     whatItLooksLike: 'Red bumps with a white or yellow tip containing fluid',
-    careTip: 'Spot treatment with benzoyl peroxide. Never pop - it can cause scarring!',
+    careTip: 'A gentle spot product can help. Never pop them, as that can leave marks.',
     severity: 'moderate',
     color: '#F59E0B',
     emoji: '🟡',
@@ -111,7 +112,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'papule': {
     therapeuticName: 'Small Sensitive Bumps',
     clinicalName: 'Papules',
-    description: 'Small, solid, raised bumps caused by inflammation. No visible pus inside.',
+    description: 'Small, solid, raised bumps caused by irritation in the pore. No visible fluid inside.',
     whatItLooksLike: 'Small red or pink bumps without a "head"',
     careTip: 'Be gentle! Harsh products can make them worse. Try niacinamide.',
     severity: 'moderate',
@@ -121,7 +122,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'papules': {
     therapeuticName: 'Small Sensitive Bumps',
     clinicalName: 'Papules',
-    description: 'Small, solid, raised bumps caused by inflammation. No visible pus inside.',
+    description: 'Small, solid, raised bumps caused by irritation in the pore. No visible fluid inside.',
     whatItLooksLike: 'Small red or pink bumps without a "head"',
     careTip: 'Be gentle! Harsh products can make them worse. Try niacinamide.',
     severity: 'moderate',
@@ -133,7 +134,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
     clinicalName: 'Nodules',
     description: 'Large, hard bumps deep under the skin. More serious and can be painful.',
     whatItLooksLike: 'Large, firm lumps you can feel under the skin',
-    careTip: 'Professional care recommended. Don\'t try to squeeze - it won\'t work and can scar.',
+    careTip: 'Worth showing to a skin professional. Don\'t try to squeeze them, as it won\'t work and can leave marks.',
     severity: 'needs-attention',
     color: '#DC2626',
     emoji: '🟤',
@@ -143,7 +144,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
     clinicalName: 'Nodules',
     description: 'Large, hard bumps deep under the skin. More serious and can be painful.',
     whatItLooksLike: 'Large, firm lumps you can feel under the skin',
-    careTip: 'Professional care recommended. Don\'t try to squeeze - it won\'t work and can scar.',
+    careTip: 'Worth showing to a skin professional. Don\'t try to squeeze them, as it won\'t work and can leave marks.',
     severity: 'needs-attention',
     color: '#DC2626',
     emoji: '🟤',
@@ -151,9 +152,9 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'cyst': {
     therapeuticName: 'Deep Sensitive Areas',
     clinicalName: 'Cysts',
-    description: 'Large, painful, pus-filled lumps deep under the skin. The most severe type.',
+    description: 'Large, tender lumps deep under the skin. The most persistent type.',
     whatItLooksLike: 'Large, soft, painful lumps deep beneath the surface',
-    careTip: 'See a dermatologist. These need professional treatment to prevent scarring.',
+    careTip: 'Worth showing to a skin professional. Please don\'t squeeze them.',
     severity: 'needs-attention',
     color: '#991B1B',
     emoji: '⭕',
@@ -161,9 +162,9 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'cysts': {
     therapeuticName: 'Deep Sensitive Areas',
     clinicalName: 'Cysts',
-    description: 'Large, painful, pus-filled lumps deep under the skin. The most severe type.',
+    description: 'Large, tender lumps deep under the skin. The most persistent type.',
     whatItLooksLike: 'Large, soft, painful lumps deep beneath the surface',
-    careTip: 'See a dermatologist. These need professional treatment to prevent scarring.',
+    careTip: 'Worth showing to a skin professional. Please don\'t squeeze them.',
     severity: 'needs-attention',
     color: '#991B1B',
     emoji: '⭕',
@@ -171,9 +172,9 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'cystic': {
     therapeuticName: 'Deep Sensitive Areas',
     clinicalName: 'Cystic Acne',
-    description: 'Large, painful, pus-filled lumps deep under the skin. The most severe type.',
+    description: 'Large, tender lumps deep under the skin. The most persistent type.',
     whatItLooksLike: 'Large, soft, painful lumps deep beneath the surface',
-    careTip: 'See a dermatologist. These need professional treatment to prevent scarring.',
+    careTip: 'Worth showing to a skin professional. Please don\'t squeeze them.',
     severity: 'needs-attention',
     color: '#991B1B',
     emoji: '⭕',
@@ -183,7 +184,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
     clinicalName: 'Acne',
     description: 'General skin activity in this area that may include various types of blemishes.',
     whatItLooksLike: 'Mix of bumps, redness, or congestion',
-    careTip: 'Consistent gentle routine is key. Cleanser, treatment, moisturizer.',
+    careTip: 'A consistent gentle routine is key: cleanser, a light serum, moisturizer.',
     severity: 'moderate',
     color: '#F59E0B',
     emoji: '✦',
@@ -191,7 +192,7 @@ const SKIN_CONDITIONS: Record<string, SkinConditionInfo> = {
   'redness': {
     therapeuticName: 'Sensitivity & Warmth',
     clinicalName: 'Redness/Inflammation',
-    description: 'Areas showing redness or sensitivity, possibly from irritation or inflammation.',
+    description: 'Areas showing redness or sensitivity, possibly from irritation.',
     whatItLooksLike: 'Pink or red patches on the skin',
     careTip: 'Soothing ingredients like aloe, centella, or green tea can help calm redness.',
     severity: 'mild',
@@ -529,10 +530,7 @@ export default function SkinStateScan({ onBack }: { onBack: () => void }) {
                         <Text style={styles.typeEmojiText}>{group.info.emoji}</Text>
                       </View>
                       <View style={styles.typeHeaderText}>
-                        <Text style={styles.typeName}>{group.info.clinicalName}</Text>
-                        <Text style={[styles.typeTherapeutic, { color: group.info.color }]}>
-                          {group.info.therapeuticName}
-                        </Text>
+                        <Text style={styles.typeName}>{group.info.therapeuticName}</Text>
                       </View>
                       <View style={[styles.countBadge, { backgroundColor: group.info.color }]}>
                         <Text style={styles.countText}>{group.count}</Text>
@@ -541,14 +539,14 @@ export default function SkinStateScan({ onBack }: { onBack: () => void }) {
 
                     <View style={styles.typeBody}>
                       <Text style={styles.typeQuestion}>What is it?</Text>
-                      <Text style={styles.typeAnswer}>{group.info.description}</Text>
+                      <Text style={styles.typeAnswer}>{sanitizeTherapeuticLanguage(group.info.description)}</Text>
 
                       <Text style={styles.typeQuestion}>What it looks like:</Text>
-                      <Text style={styles.typeAnswer}>{group.info.whatItLooksLike}</Text>
+                      <Text style={styles.typeAnswer}>{sanitizeTherapeuticLanguage(group.info.whatItLooksLike)}</Text>
 
                       <View style={styles.tipBox}>
                         <Ionicons name="bulb" size={16} color="#F59E0B" />
-                        <Text style={styles.tipText}>{group.info.careTip}</Text>
+                        <Text style={styles.tipText}>{sanitizeTherapeuticLanguage(group.info.careTip)}</Text>
                       </View>
                     </View>
 
@@ -556,7 +554,7 @@ export default function SkinStateScan({ onBack }: { onBack: () => void }) {
                       <View style={[styles.severityDot, { backgroundColor: group.info.color }]} />
                       <Text style={[styles.severityText, { color: group.info.color }]}>
                         {group.info.severity === 'mild' && 'Mild - Usually clears with basic care'}
-                        {group.info.severity === 'moderate' && 'Moderate - May need targeted treatment'}
+                        {group.info.severity === 'moderate' && 'Moderate - A consistent routine usually helps'}
                         {group.info.severity === 'needs-attention' && 'Needs Attention - Consider seeing a professional'}
                       </Text>
                     </View>
@@ -599,7 +597,7 @@ export default function SkinStateScan({ onBack }: { onBack: () => void }) {
             </TouchableOpacity>
 
             <Text style={styles.disclaimer}>
-              This is not medical advice. Consult a dermatologist for professional diagnosis.
+              This is not medical advice. For any concern, please see a skin professional.
             </Text>
           </ScrollView>
           </View>

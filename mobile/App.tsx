@@ -126,7 +126,7 @@ export default function App() {
               >
                 <Ionicons name="scan" size={28} color="#3B82F6" style={styles.featureIcon} />
                 <Text style={styles.featureTitleDark}>Skin{'\n'}Check-In</Text>
-                <Text style={styles.featureSubtitleDark}>AI Skin{'\n'}Analysis</Text>
+                <Text style={styles.featureSubtitleDark}>Daily skin{'\n'}snapshot</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
